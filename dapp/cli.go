@@ -7,12 +7,14 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/dappley/go-dappley/client"
 	"github.com/dappley/go-dappley/consensus"
 	"github.com/dappley/go-dappley/core"
 	"github.com/dappley/go-dappley/logic"
 	"github.com/dappley/go-dappley/network"
+	"github.com/dappley/go-dappley/storage"
 	"github.com/sirupsen/logrus"
 )
 
@@ -69,6 +71,7 @@ loop:
 		setLoggerLevelCmd := flag.NewFlagSet("setLoggerLevel", flag.ExitOnError)
 		addProducerCmd := flag.NewFlagSet("addProducer", flag.ExitOnError)
 		setMaxProducersCmd := flag.NewFlagSet("setMaxProducers", flag.ExitOnError)
+		testCmd := flag.NewFlagSet("test", flag.ExitOnError)
 
 		getBalanceAddressString := getBalanceCmd.String("address", "", "The address to get balance for")
 		addBalanceAddressString := addBalanceCmd.String("address", "", "The address to add balance for")
@@ -113,6 +116,8 @@ loop:
 			err = addProducerCmd.Parse(args[1:])
 		case "setMaxProducers":
 			err = setMaxProducersCmd.Parse(args[1:])
+		case "test":
+			err = testCmd.Parse(args[1:])
 		case "exit":
 			break loop
 		default:
@@ -120,6 +125,56 @@ loop:
 		}
 		if err != nil {
 			log.Panic(err)
+		}
+		if testCmd.Parsed() {
+			const testport_fork = 10200
+			var pows []*consensus.ProofOfWork
+			var bcs []*core.Blockchain
+			addr := core.NewAddress("16PencPNnF8CiSx2EBGEd1axhf7vuHCouj")
+			numOfNodes := 2
+			nodes := []*network.Node{}
+			println("test start")
+			for i := 0; i < numOfNodes; i++ {
+				//create storage instance
+				db := storage.NewRamStorage()
+				defer db.Close()
+
+				pow := consensus.NewProofOfWork()
+				bc := core.GenerateMockBlockchainWithCoinbaseTxOnlyWithConsensus(20000*(1-i), pow)
+				bcs = append(bcs, bc)
+				n := network.NewNode(bc)
+				pow.Setup(n, addr.Address)
+				pow.SetTargetBit(0)
+				n.Start(testport_fork + i)
+				pows = append(pows, pow)
+				nodes = append(nodes, n)
+			}
+
+			time.Sleep(time.Second * 5)
+			for i := 0; i < numOfNodes; i++ {
+				if i != 0 {
+					fmt.Println(nodes[0].GetPeerID())
+					fmt.Println(nodes[0].GetPeerMultiaddr())
+					nodes[i].AddStream(
+						nodes[0].GetPeerID(),
+						nodes[0].GetPeerMultiaddr(),
+					)
+
+				}
+				nodes[0].SyncPeers()
+			}
+			fmt.Printf("generate port1 with %d %s", int(bcs[0].GetMaxHeight()), "block")
+			fmt.Printf("generate port2 with %d %s", int(bcs[1].GetMaxHeight()), "block")
+			tailBlock, _ := nodes[0].GetBlockchain().GetTailBlock()
+			nodes[0].SendBlock(tailBlock)
+			for int(bcs[0].GetMaxHeight()) < 20000 || int(bcs[1].GetMaxHeight()) < 10000 {
+				if int(bcs[0].GetMaxHeight()) < 20000 {
+					println(int(bcs[0].GetMaxHeight()))
+				}
+				if int(bcs[1].GetMaxHeight()) < 20000 {
+					println(int(bcs[1].GetMaxHeight()))
+				}
+			}
 		}
 
 		if setMaxProducersCmd.Parsed() {
