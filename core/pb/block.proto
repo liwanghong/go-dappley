@@ -2,6 +2,9 @@ syntax = "proto3";
 package corepb;
 import "github.com/dappley/go-dappley/core/pb/transaction.proto";
 
+message Blocks{
+    repeated Block Blocks = 1;
+}
 
 message Block{
     BlockHeader Header = 1;

@@ -128,51 +128,27 @@ loop:
 		}
 		if testCmd.Parsed() {
 			const testport_fork = 10200
-			var pows []*consensus.ProofOfWork
-			var bcs []*core.Blockchain
 			addr := core.NewAddress("16PencPNnF8CiSx2EBGEd1axhf7vuHCouj")
-			numOfNodes := 2
-			nodes := []*network.Node{}
 			println("test start")
-			for i := 0; i < numOfNodes; i++ {
-				//create storage instance
-				db := storage.NewRamStorage()
-				defer db.Close()
+			//create storage instance
+			db := storage.NewRamStorage()
+			defer db.Close()
 
-				pow := consensus.NewProofOfWork()
-				bc := core.GenerateMockBlockchainWithCoinbaseTxOnlyWithConsensus(20000*(1-i), pow)
-				bcs = append(bcs, bc)
-				n := network.NewNode(bc)
-				pow.Setup(n, addr.Address)
-				pow.SetTargetBit(0)
-				n.Start(testport_fork + i)
-				pows = append(pows, pow)
-				nodes = append(nodes, n)
-			}
+			pow := consensus.NewProofOfWork()
+			bc := core.GenerateMockBlockchainWithCoinbaseTxOnlyWithConsensus(20000, pow)
+			n := network.NewNode(bc)
+			pow.Setup(n, addr.Address)
+			pow.SetTargetBit(0)
+			n.Start(testport_fork)
 
-			time.Sleep(time.Second * 5)
-			for i := 0; i < numOfNodes; i++ {
-				if i != 0 {
-					fmt.Println(nodes[0].GetPeerID())
-					fmt.Println(nodes[0].GetPeerMultiaddr())
-					nodes[i].AddStream(
-						nodes[0].GetPeerID(),
-						nodes[0].GetPeerMultiaddr(),
-					)
-
-				}
-				nodes[0].SyncPeers()
-			}
-			fmt.Printf("generate port1 with %d %s", int(bcs[0].GetMaxHeight()), "block")
-			fmt.Printf("generate port2 with %d %s", int(bcs[1].GetMaxHeight()), "block")
-			tailBlock, _ := nodes[0].GetBlockchain().GetTailBlock()
-			nodes[0].SendBlock(tailBlock)
-			for int(bcs[0].GetMaxHeight()) < 20000 || int(bcs[1].GetMaxHeight()) < 10000 {
-				if int(bcs[0].GetMaxHeight()) < 20000 {
-					println(int(bcs[0].GetMaxHeight()))
-				}
-				if int(bcs[1].GetMaxHeight()) < 20000 {
-					println(int(bcs[1].GetMaxHeight()))
+			n.SyncPeers()
+			fmt.Printf("generate port with %d %s", int(bc.GetMaxHeight()), "block")
+			time.Sleep(time.Second * 15)
+			tailBlock, _ := n.GetBlockchain().GetTailBlock()
+			n.SendBlock(tailBlock)
+			for int(bc.GetMaxHeight()) < 20000 {
+				if int(bc.GetMaxHeight()) < 20000 {
+					println(int(bc.GetMaxHeight()))
 				}
 			}
 		}

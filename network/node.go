@@ -6,6 +6,8 @@ import (
 	"math/rand"
 	"time"
 
+	"errors"
+
 	"github.com/dappley/go-dappley/core"
 	"github.com/dappley/go-dappley/core/pb"
 	"github.com/dappley/go-dappley/network/pb"
@@ -17,7 +19,6 @@ import (
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	ma "github.com/multiformats/go-multiaddr"
 	logger "github.com/sirupsen/logrus"
-	"errors"
 )
 
 const (
@@ -30,31 +31,31 @@ var (
 )
 
 type Node struct {
-	host      host.Host
-	info      *Peer
-	bc        *core.Blockchain
-	blks      []*core.Block
-	txnPool   core.TransactionPool
-	streams   map[peer.ID]*Stream
-	peerList  *PeerList
-	exitCh    chan bool
+	host     host.Host
+	info     *Peer
+	bc       *core.Blockchain
+	blks     []*core.Block
+	txnPool  core.TransactionPool
+	streams  map[peer.ID]*Stream
+	peerList *PeerList
+	exitCh   chan bool
 }
 
 //create new Node instance
 func NewNode(bc *core.Blockchain) *Node {
 	return &Node{nil,
-	nil,
-	bc,
-	nil,
-	core.TransactionPool{},
-	make(map[peer.ID]*Stream, 10),
-	NewPeerList(nil),
-	make(chan bool, 1),
+		nil,
+		bc,
+		nil,
+		core.TransactionPool{},
+		make(map[peer.ID]*Stream, 10),
+		NewPeerList(nil),
+		make(chan bool, 1),
 	}
 }
 
-func (n *Node) GetBlockchain() *core.Blockchain{return n.bc}
-func (n *Node) GetPeerList() *PeerList{return n.peerList}
+func (n *Node) GetBlockchain() *core.Blockchain { return n.bc }
+func (n *Node) GetPeerList() *PeerList          { return n.peerList }
 
 func (n *Node) Start(listenPort int) error {
 
@@ -188,7 +189,7 @@ func (n *Node) GetPeerMultiaddr() ma.Multiaddr {
 
 func (n *Node) GetPeerID() peer.ID { return n.info.peerid }
 
-func prepareData(msgData proto.Message, cmd string) ([]byte, error){
+func prepareData(msgData proto.Message, cmd string) ([]byte, error) {
 
 	if cmd == "" {
 		return nil, ErrDapMsgNoCmd
@@ -197,7 +198,7 @@ func prepareData(msgData proto.Message, cmd string) ([]byte, error){
 	bytes := []byte{}
 	var err error
 
-	if msgData!=nil {
+	if msgData != nil {
 		//marshal the block to wire format
 		bytes, err = proto.Marshal(msgData)
 		if err != nil {
@@ -215,8 +216,8 @@ func prepareData(msgData proto.Message, cmd string) ([]byte, error){
 }
 
 func (n *Node) SendBlock(block *core.Block) error {
-	data,err := prepareData(block.ToProto(), SyncBlock)
-	if err!=nil {
+	data, err := prepareData(block.ToProto(), SyncBlock)
+	if err != nil {
 		return err
 	}
 	n.broadcast(data)
@@ -224,27 +225,40 @@ func (n *Node) SendBlock(block *core.Block) error {
 }
 
 func (n *Node) SyncPeers() error {
-	data,err := prepareData(n.peerList.ToProto(), SyncPeerList)
-	if err!=nil {
+	data, err := prepareData(n.peerList.ToProto(), SyncPeerList)
+	if err != nil {
 		return err
 	}
 	n.broadcast(data)
 	return nil
 }
 
-
-func (n *Node) BroadcastTxnCmd(txn *core.Transaction) error{
-	data,err := prepareData(txn.ToProto(), BroadcastTxn)
-	if err!=nil {
+func (n *Node) BroadcastTxnCmd(txn *core.Transaction) error {
+	data, err := prepareData(txn.ToProto(), BroadcastTxn)
+	if err != nil {
 		return err
 	}
 	n.broadcast(data)
 	return nil
 }
 
-func (n *Node) SendBlockUnicast(block *core.Block, pid peer.ID) error{
-	data,err := prepareData(block.ToProto(), SyncBlock)
-	if err!=nil {
+func (n *Node) SendBlockUnicast(block *core.Block, pid peer.ID) error {
+	data, err := prepareData(block.ToProto(), SyncBlock)
+	if err != nil {
+		return err
+	}
+	n.unicast(data, pid)
+	return nil
+}
+
+func (n *Node) SendBlocksUnicast(blocks []*core.Block, pid peer.ID) error {
+	var txArray []*corepb.Block
+	for _, block := range blocks {
+		txArray = append(txArray, block.ToProto().(*corepb.Block))
+	}
+	blocksArray := &corepb.Blocks{Blocks: txArray}
+	data, err := prepareData(blocksArray, SyncBlocks)
+	if err != nil {
 		return err
 	}
 	n.unicast(data, pid)
@@ -252,6 +266,17 @@ func (n *Node) SendBlockUnicast(block *core.Block, pid peer.ID) error{
 }
 
 func (n *Node) RequestBlockUnicast(hash core.Hash, pid peer.ID) error {
+	//build a deppley message
+	dm := NewDapmsg(RequestBlock, hash)
+	data, err := proto.Marshal(dm.ToProto())
+	if err != nil {
+		return err
+	}
+	n.unicast(data, pid)
+	return nil
+}
+
+func (n *Node) RequestBlocksUnicast(hash core.Hash, pid peer.ID) error {
 	//build a deppley message
 	dm := NewDapmsg(RequestBlock, hash)
 	data, err := proto.Marshal(dm.ToProto())
@@ -296,13 +321,37 @@ func (n *Node) addBlockToPool(data []byte, pid peer.ID) {
 	n.blks = append(n.blks, block)
 }
 
-func (n *Node) addTxnToPool(data []byte){
+func (n *Node) addBlocksToPool(data []byte, pid peer.ID) {
+
+	//create a block proto
+	blockspb := &corepb.Blocks{}
+
+	//unmarshal byte to proto
+	if err := proto.Unmarshal(data, blockspb); err != nil {
+		logger.Warn(err)
+	}
+
+	for _, blockpb := range blockspb.Blocks {
+		//create an empty block
+		block := &core.Block{}
+		//load the block with proto
+		block.FromProto(blockpb)
+
+		//add block to blockpool. Make sure this is none blocking.
+		n.bc.BlockPool().Push(block, pid)
+		//TODO: Delete this line. This line is solely for testing
+		n.blks = append(n.blks, block)
+	}
+
+}
+
+func (n *Node) addTxnToPool(data []byte) {
 
 	//create a block proto
 	txnpb := &corepb.Transaction{}
 
 	//unmarshal byte to proto
-	if err := proto.Unmarshal(data, txnpb); err!=nil{
+	if err := proto.Unmarshal(data, txnpb); err != nil {
 		logger.Warn(err)
 	}
 
@@ -316,8 +365,7 @@ func (n *Node) addTxnToPool(data []byte){
 	n.txnPool.StructPush(txn)
 }
 
-
-func (n *Node)addMultiPeers(data []byte){
+func (n *Node) addMultiPeers(data []byte) {
 
 	go func() {
 		//create a peerList proto
