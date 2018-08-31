@@ -1,21 +1,22 @@
 package main
 
 import (
-	"github.com/dappley/go-dappley/consensus"
-	"github.com/dappley/go-dappley/core"
-	"github.com/dappley/go-dappley/network"
-	logger "github.com/sirupsen/logrus"
+	"flag"
+	"log"
+
 	"github.com/dappley/go-dappley/client"
 	"github.com/dappley/go-dappley/config"
-	"flag"
-	"github.com/dappley/go-dappley/storage"
-	"log"
+	"github.com/dappley/go-dappley/consensus"
+	"github.com/dappley/go-dappley/core"
 	"github.com/dappley/go-dappley/logic"
+	"github.com/dappley/go-dappley/network"
+	"github.com/dappley/go-dappley/storage"
+	logger "github.com/sirupsen/logrus"
 )
 
 const (
-    genesisAddr = "121yKAXeG4cw6uaGCBYjWk9yTWmMkhcoDD"
-	configFilePath 	= "conf/default.conf"
+	genesisAddr    = "121yKAXeG4cw6uaGCBYjWk9yTWmMkhcoDD"
+	configFilePath = "conf/default.conf"
 )
 
 func main() {
@@ -28,7 +29,7 @@ func main() {
 	//set to debug level
 	logger.SetLevel(logger.InfoLevel)
 	conf := config.LoadConfigFromFile(filePath)
-	if conf== nil{
+	if conf == nil {
 		logger.Error("ERROR: Cannot load configurations from file!Exiting...")
 		return
 	}
@@ -39,16 +40,16 @@ func main() {
 
 	//creat blockchain
 	conss, dynasty := initConsensus(conf)
-	bc,err := core.GetBlockchain(db,conss)
-	if err !=nil {
+	bc, err := core.GetBlockchain(db, conss)
+	if err != nil {
 		bc, err = logic.CreateBlockchain(core.Address{genesisAddr}, db, conss)
 		if err != nil {
 			log.Panic(err)
 		}
 	}
 
-	node, err := initNode(conf,bc)
-	if err!= nil{
+	node, err := initNode(conf, bc)
+	if err != nil {
 		return
 	}
 
@@ -66,22 +67,21 @@ func main() {
 	cli.Run(bc, node, wallets, dynasty)
 }
 
-func initConsensus(conf *config.Config) (core.Consensus, *consensus.Dynasty){
+func initConsensus(conf *config.Config) (core.Consensus, *consensus.Dynasty) {
 	//set up consensus
-	conss := consensus.NewDpos()
+	conss := consensus.NewProofOfWork()
 	dynasty := consensus.NewDynastyWithProducers(conf.GetDynastyConfig().GetProducers())
-	conss.SetDynasty(dynasty)
-	conss.SetTargetBit(18)
+	conss.SetTargetBit(0)
 	return conss, dynasty
 }
 
-func initNode(conf *config.Config,bc *core.Blockchain) (*network.Node, error){
+func initNode(conf *config.Config, bc *core.Blockchain) (*network.Node, error) {
 	//create node
 	node := network.NewNode(bc)
 	nodeConfig := conf.GetNodeConfig()
 	port := nodeConfig.GetListeningPort()
 	err := node.Start(int(port))
-	if err!=nil {
+	if err != nil {
 		logger.Error(err)
 		logger.Error("ERROR: Invalid Port!Exiting...")
 		return nil, err
@@ -90,5 +90,5 @@ func initNode(conf *config.Config,bc *core.Blockchain) (*network.Node, error){
 	if seed != "" {
 		node.AddStreamByString(seed)
 	}
-	return node,nil
+	return node, nil
 }
