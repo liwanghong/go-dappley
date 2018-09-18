@@ -23,26 +23,27 @@ import (
 	"crypto/sha256"
 	"encoding/gob"
 	"time"
+
 	logger "github.com/sirupsen/logrus"
 
 	"math/big"
 	"reflect"
 
+	"encoding/hex"
+
 	"github.com/dappley/go-dappley/core/pb"
+	"github.com/dappley/go-dappley/crypto/keystore/secp256k1"
 	"github.com/dappley/go-dappley/util"
 	"github.com/gogo/protobuf/proto"
-	"github.com/dappley/go-dappley/crypto/keystore/secp256k1"
-	"encoding/hex"
 )
-
 
 type BlockHeader struct {
 	hash      Hash
 	prevHash  Hash
 	nonce     int64
 	timestamp int64
-	sign Hash
-	height       uint64
+	sign      Hash
+	height    uint64
 }
 
 type Block struct {
@@ -71,8 +72,8 @@ func NewBlock(transactions []*Transaction, parent *Block) *Block {
 			prevHash:  prevHash,
 			nonce:     0,
 			timestamp: time.Now().Unix(),
-			sign: nil,
-			height: height,
+			sign:      nil,
+			height:    height,
 		},
 		transactions: transactions,
 	}
@@ -100,8 +101,8 @@ func (b *Block) Serialize() []byte {
 			PrevHash:  b.header.prevHash,
 			Nonce:     b.header.nonce,
 			Timestamp: b.header.timestamp,
-			Sign: b.header.sign,
-			Height: b.header.height,
+			Sign:      b.header.sign,
+			Height:    b.header.height,
 		},
 		Transactions: b.transactions,
 	}
@@ -135,8 +136,8 @@ func Deserialize(d []byte) *Block {
 			prevHash:  bs.Header.PrevHash,
 			nonce:     bs.Header.Nonce,
 			timestamp: bs.Header.Timestamp,
-			sign: bs.Header.Sign,
-			height:	   bs.Header.Height,
+			sign:      bs.Header.Sign,
+			height:    bs.Header.Height,
 		},
 		transactions: bs.Transactions,
 	}
@@ -153,7 +154,6 @@ func (b *Block) GetHash() Hash {
 func (b *Block) GetSign() Hash {
 	return b.header.sign
 }
-
 
 func (b *Block) GetHeight() uint64 {
 	return b.header.height
@@ -206,8 +206,7 @@ func (b *Block) FromProto(pb proto.Message) {
 		txs = append(txs, tx)
 	}
 	b.transactions = txs
-	}
-
+}
 
 func (bh *BlockHeader) ToProto() proto.Message {
 	return &corepb.BlockHeader{
@@ -215,9 +214,8 @@ func (bh *BlockHeader) ToProto() proto.Message {
 		Prevhash:  bh.prevHash,
 		Nonce:     bh.nonce,
 		Timestamp: bh.timestamp,
-		Sign: bh.sign,
-		Height: bh.height,
-
+		Sign:      bh.sign,
+		Height:    bh.height,
 	}
 }
 
@@ -226,8 +224,8 @@ func (bh *BlockHeader) FromProto(pb proto.Message) {
 	bh.prevHash = pb.(*corepb.BlockHeader).Prevhash
 	bh.nonce = pb.(*corepb.BlockHeader).Nonce
 	bh.timestamp = pb.(*corepb.BlockHeader).Timestamp
-	bh.sign =  pb.(*corepb.BlockHeader).Sign
-	bh.height =  pb.(*corepb.BlockHeader).Height
+	bh.sign = pb.(*corepb.BlockHeader).Sign
+	bh.height = pb.(*corepb.BlockHeader).Height
 }
 
 func (b *Block) CalculateHash() Hash {
@@ -300,32 +298,32 @@ func (b *Block) VerifyTransactions(utxo UTXOIndex) bool {
 	return true
 }
 
-func IsParentBlockHash(parentBlk, childBlk *Block) bool{
-	if parentBlk == nil || childBlk == nil{
+func IsParentBlockHash(parentBlk, childBlk *Block) bool {
+	if parentBlk == nil || childBlk == nil {
 		return false
 	}
 	return reflect.DeepEqual(parentBlk.GetHash(), childBlk.GetPrevHash())
 }
 
-func IsHashEqual(h1 Hash , h2 Hash) bool{
+func IsHashEqual(h1 Hash, h2 Hash) bool {
 
 	return reflect.DeepEqual(h1, h2)
 }
 
-func IsParentBlockHeight(parentBlk, childBlk *Block) bool{
-	if parentBlk == nil || childBlk == nil{
+func IsParentBlockHeight(parentBlk, childBlk *Block) bool {
+	if parentBlk == nil || childBlk == nil {
 		return false
 	}
 	return parentBlk.GetHeight() == childBlk.GetHeight()-1
 }
 
-func IsParentBlock(parentBlk, childBlk *Block) bool{
+func IsParentBlock(parentBlk, childBlk *Block) bool {
 	return IsParentBlockHash(parentBlk, childBlk) && IsParentBlockHeight(parentBlk, childBlk)
 }
 
-func (b *Block) Rollback(txPool *TransactionPool){
-	if b!= nil {
-		for _,tx := range b.GetTransactions(){
+func (b *Block) Rollback(txPool *TransactionPool) {
+	if b != nil {
+		for _, tx := range b.GetTransactions() {
 			if !tx.IsCoinbase() {
 				txPool.Transactions.StructPush(*tx)
 			}
@@ -333,7 +331,7 @@ func (b *Block) Rollback(txPool *TransactionPool){
 	}
 }
 
-func (b *Block) FindTransactionById(txid []byte) *Transaction{
+func (b *Block) FindTransactionById(txid []byte) *Transaction {
 	for _, tx := range b.transactions {
 		if bytes.Compare(tx.ID, txid) == 0 {
 
@@ -344,17 +342,16 @@ func (b *Block) FindTransactionById(txid []byte) *Transaction{
 	return nil
 }
 
-
-func (b *Block) GetCoinbaseTransaction() *Transaction{
+func (b *Block) GetCoinbaseTransaction() *Transaction {
 	//the coinbase transaction is usually placed at the end of all transactions
-	for i:=len(b.transactions)-1;i>=0;i--{
-		if b.transactions[i].IsCoinbase(){
+	for i := len(b.transactions) - 1; i >= 0; i-- {
+		if b.transactions[i].IsCoinbase() {
 			return b.transactions[i]
 		}
 	}
 	return nil
 }
 
-func (b *Block) hashString() string {
+func (b *Block) HashString() string {
 	return string(b.GetHash())
 }
