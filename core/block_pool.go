@@ -25,6 +25,7 @@ import (
 	"github.com/dappley/go-dappley/common"
 )
 const BlockPoolLRUCacheLimit = 128
+const BlockPoolForkChainLimit = 10
 
 type BlockRequestPars struct {
 	BlockHash Hash
@@ -36,14 +37,31 @@ type RcvedBlock struct {
 	Pid   peer.ID
 }
 
+type ForkBlockState uint 
+
+const (
+	ForkBlockReady ForkBlockState = iota
+	ForkBlockExpect
+)
+
+type ForkBlock struct {
+	stateFork       BlockState
+	childrenCount   int
+	block           *Block
+}
+
+
 type BlockPool struct {
 	blockRequestCh chan BlockRequestPars
 	size           int
 	bc             *Blockchain
 	forkPool       []*Block
-	blkCache       *lru.Cache //cache of full blks
-	nodeCache       *lru.Cache //cache of tree nodes that contain blk header as value
-
+	//blkCache       *lru.Cache //cache of full blks
+	//nodeCache       *lru.Cache //cache of tree nodes that contain blk header as value
+	
+	forkTails       *lru.Cache
+	longestTailHash Hash
+    forkBlocks      map[Hash]*Block
 }
 
 
@@ -54,9 +72,12 @@ func NewBlockPool(size int) *BlockPool {
 		bc:             nil,
 		forkPool:       []*Block{},
 	}
-	pool.blkCache,_ = lru.New(BlockPoolLRUCacheLimit)
-	pool.nodeCache,_ = lru.New(BlockPoolLRUCacheLimit)
-
+	//pool.blkCache,_ = lru.New(BlockPoolLRUCacheLimit)
+	//pool.nodeCache,_ = lru.New(BlockPoolLRUCacheLimit)
+	
+	pool.forkTails,_ = lru.New(BlockPoolForkChainLimit, onForkTailEvict)
+	pool.longestTailHash = nil
+	pool.forkBlocks = make(map[Hash]*Block)
 	return pool
 }
 
@@ -325,4 +346,9 @@ func (pool *BlockPool) addTailToForkPool(blk *Block) {
 
 func (pool *BlockPool) addParentToForkPool(blk *Block) {
 	pool.forkPool = append(pool.forkPool, blk)
+}
+
+
+func onForkTailEvict(key interface{}, value interface{}) {
+
 }
