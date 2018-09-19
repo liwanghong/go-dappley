@@ -19,7 +19,6 @@
 package core
 
 import (
-	"github.com/dappley/go-dappley/common"
 	"github.com/hashicorp/golang-lru"
 	"github.com/libp2p/go-libp2p-peer"
 	logger "github.com/sirupsen/logrus"
@@ -46,7 +45,7 @@ const (
 )
 
 type ForkBlock struct {
-	forkState     BlockState
+	forkState     ForkBlockState
 	childrenCount int
 	block         *Block
 }
