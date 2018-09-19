@@ -229,6 +229,7 @@ func (pool *BlockPool) handleRecvdBlock(blk *Block, sender peer.ID) {
 	if ok {
 		if existForkBlock.forkState == ForkBlockReady {
 			logger.Debug("BlockPool: Fork Pool already contains blk: ", blk.HashString())
+			return
 		}
 	}
 
@@ -273,8 +274,8 @@ func (pool *BlockPool) addBlock2Pool(blk *Block, sender peer.ID) {
 			pool.checkAndRequestBlock(blk.GetPrevHash(), sender)
 		}
 
-		lastLongestForkBlock := pool.forkBlocks[string(pool.longestTailHash)]
-		if lastLongestForkBlock.block.GetHeight() < blk.GetHeight() {
+		lastLongestForkBlock, ok := pool.forkBlocks[string(pool.longestTailHash)]
+		if ok == false || lastLongestForkBlock.block.GetHeight() < blk.GetHeight() {
 			pool.longestTailHash = blk.GetHash()
 		}
 	}
