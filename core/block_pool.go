@@ -20,8 +20,9 @@ package core
 
 import (
 	"github.com/dappley/go-dappley/common"
-	logger "github.com/sirupsen/logrus"
 	"github.com/hashicorp/golang-lru"
+	"github.com/libp2p/go-libp2p-peer"
+	logger "github.com/sirupsen/logrus"
 )
 
 const BlockPoolLRUCacheLimit = 128
@@ -70,7 +71,7 @@ func NewBlockPool(size int) *BlockPool {
 		forkPool:       []*Block{},
 	}
 
-	pool.forkTails, _ = lru.New(BlockPoolForkChainLimit, func (key interface{}, value interface{}) {
+	pool.forkTails, _ = lru.New(BlockPoolForkChainLimit, func(key interface{}, value interface{}) {
 		if pool.skipEvict {
 			pool.removeOldForkTail(key.(Hash))
 		}
@@ -256,7 +257,7 @@ func (pool *BlockPool) addBlock2Pool(blk *Block, sender peer.ID) {
 		//New block is exist block's parent block
 		existForkBlock.forkState = ForkBlockReady
 		existForkBlock.block = blk
-		
+
 		pool.checkAndRequestBlock(blk.GetPrevHash(), sender)
 	} else {
 		//New block is fork tail block
@@ -272,7 +273,7 @@ func (pool *BlockPool) addBlock2Pool(blk *Block, sender peer.ID) {
 		} else {
 			pool.checkAndRequestBlock(blk.GetPrevHash(), sender)
 		}
-		
+
 		lastLongestForkBlock := pool.forkBlocks[pool.longestTailHash]
 		if lastLongestForkBlock.block.GetHeight() < blk.GetHeight() {
 			pool.longestTailHash = blk.GetHash()
@@ -295,31 +296,31 @@ func (pool *BlockPool) checkAndRequestBlock(hash Hash, sender peer.ID) {
 	}
 }
 
-func (pool* BlockPool) isForkCanMerge() bool {
+func (pool *BlockPool) isForkCanMerge() bool {
 	if pool.longestTailHash == nil {
 		return false
 	}
 
-	tailBlockValue,ok := pool.forkTails.Get(pool.longestTailHash)
-    if ok != false {
+	tailBlockValue, ok := pool.forkTails.Get(pool.longestTailHash)
+	if ok != false {
 		logger.Error("ERROR: tailHash not in forkTail Cache")
 		return false
 	}
-	
+
 	tailBlock := tailBlockValue.(Block)
 	if tailBlock.GetHeight() <= pool.bc.GetMaxHeight() {
-        logger.Info("Fork tail is lag behind blockchain")
+		logger.Info("Fork tail is lag behind blockchain")
 		return false
 	}
 
 	prevHash := tailBlock.GetPrevHash()
 
-	for  {
+	for {
 		if pool.bc.IsInBlockchain(prevHash) {
 			return true
 		}
 
-		prevBlock,ok := pool.forkBlocks[prevHash]
+		prevBlock, ok := pool.forkBlocks[prevHash]
 		if ok == false || prevBlock.forkState == ForkBlockExpect {
 			return false
 		}
@@ -331,9 +332,9 @@ func (pool* BlockPool) isForkCanMerge() bool {
 }
 
 func (pool *BlockPool) updateForkPool() {
-	blockValue,_ := pool.forkTails.Get(pool.longestTailHash)
+	blockValue, _ := pool.forkTails.Get(pool.longestTailHash)
 	block := blockValue.(Block)
-    for  {
+	for {
 		if pool.bc.IsInBlockchain(block.GetHash()) {
 			break
 		}
@@ -341,7 +342,7 @@ func (pool *BlockPool) updateForkPool() {
 		delete(pool.forkBlocks, block.GetHash())
 		pool.forkPool = append(pool.forkPool, block)
 
-		prevBlock,_ := pool.forkBlocks[block.GetPrevHash()]
+		prevBlock, _ := pool.forkBlocks[block.GetPrevHash()]
 		block = prevBlock.block
 	}
 
@@ -350,11 +351,11 @@ func (pool *BlockPool) updateForkPool() {
 	pool.refreshLongestTailHash()
 }
 
-func (pool* BlockPool) refreshLongestTailHash() {
+func (pool *BlockPool) refreshLongestTailHash() {
 	maxHeight := 0
 	var longestHash Hash
-	for _,key := range pool.forkTails.Keys() {
-		blockValue,_ := pool.forkTails.Get(key)
+	for _, key := range pool.forkTails.Keys() {
+		blockValue, _ := pool.forkTails.Get(key)
 		block := blockValue.(Block)
 
 		if block.GetHeight > maxHeight {
@@ -366,8 +367,8 @@ func (pool* BlockPool) refreshLongestTailHash() {
 	pool.longestTailHash = longestHash
 }
 
-func (pool* BlockPool) removeOldForkTail(hash Hash) {
-	forkBlock,ok := pool.forkBlocks[hash]
+func (pool *BlockPool) removeOldForkTail(hash Hash) {
+	forkBlock, ok := pool.forkBlocks[hash]
 	for ok {
 		forkBlock.childrenCount--
 		if forkBlock.childrenCount <= 0 {
@@ -378,8 +379,8 @@ func (pool* BlockPool) removeOldForkTail(hash Hash) {
 		} else {
 			break
 		}
-        
-		forkBlock,ok := pool.forkBlocks[forkBlock.GetPrevHash()]
+
+		forkBlock, ok := pool.forkBlocks[forkBlock.GetPrevHash()]
 	}
 }
 
