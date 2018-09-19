@@ -58,6 +58,7 @@ type BlockPool struct {
 
 	forkTails       *lru.Cache
 	longestTailHash Hash
+	skipEvict       bool
 	forkBlocks      map[Hash]*ForkBlock
 }
 
@@ -70,9 +71,12 @@ func NewBlockPool(size int) *BlockPool {
 	}
 
 	pool.forkTails, _ = lru.New(BlockPoolForkChainLimit, func onForkTailEvict(key interface{}, value interface{}) {
-		pool.removeOldForkTail(key.(Hash))
+		if pool.skipEvict {
+			pool.removeOldForkTail(key.(Hash))
+		}
 	})
 	pool.longestTailHash = nil
+	pool.skipEvict = false
 	pool.forkBlocks = make(map[Hash]*Block)
 	return pool
 }
@@ -262,7 +266,9 @@ func (pool *BlockPool) addBlock2Pool(blk *Block, sender peer.ID) {
 			//Remove the new block's parent from forkTail
 			parentBlockFork := pool.forkBlocks[blk.GetPrevHash()]
 			parentBlockFork.childrenCount++
+			pool.skipEvict = true
 			pool.forkTails.Remove(blk.GetPrevHash())
+			pool.skipEvict = false
 		} else {
 			pool.checkAndRequestBlock(blk.GetPrevHash(), sender)
 		}
