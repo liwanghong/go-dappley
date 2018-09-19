@@ -379,7 +379,7 @@ func (pool *BlockPool) removeOldForkTail(hashString string) {
 			break
 		}
 
-		forkBlock, ok := pool.forkBlocks[string(forkBlock.block.GetPrevHash())]
+		forkBlock, ok = pool.forkBlocks[string(forkBlock.block.GetPrevHash())]
 	}
 }
 
