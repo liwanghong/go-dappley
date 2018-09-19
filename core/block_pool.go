@@ -70,7 +70,7 @@ func NewBlockPool(size int) *BlockPool {
 		forkPool:       []*Block{},
 	}
 
-	pool.forkTails, _ = lru.New(BlockPoolForkChainLimit, func onForkTailEvict(key interface{}, value interface{}) {
+	pool.forkTails, _ = lru.New(BlockPoolForkChainLimit, func (key interface{}, value interface{}) {
 		if pool.skipEvict {
 			pool.removeOldForkTail(key.(Hash))
 		}
@@ -352,8 +352,8 @@ func (pool *BlockPool) updateForkPool() {
 
 func (pool* BlockPool) refreshLongestTailHash() {
 	maxHeight := 0
-	var longestHash Hash = nil
-	for _,key : range pool.forkTails.Keys() {
+	var longestHash Hash
+	for _,key := range pool.forkTails.Keys() {
 		blockValue,_ := pool.forkTails.Get(key)
 		block := blockValue.(Block)
 
