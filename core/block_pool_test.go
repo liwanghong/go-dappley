@@ -19,45 +19,46 @@
 package core
 
 import (
-	"testing"
-	"github.com/stretchr/testify/assert"
+	"github.com/dappley/go-dappley/client"
+	"github.com/dappley/go-dappley/consensus"
 	"github.com/dappley/go-dappley/storage"
+	logger "github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
+	"testing"
 )
-
 
 func TestBlockPool_GetBlockchain(t *testing.T) {
 	db := storage.NewRamStorage()
 	defer db.Close()
 	addr := Address{"17DgRtQVvaytkiKAfXx9XbV23MESASSwUz"}
-	bc:= CreateBlockchain(addr,db,nil)
+	bc := CreateBlockchain(addr, db, nil)
 
 	hash1 := bc.GetTailBlockHash()
 	newbc := bc.GetBlockPool().GetBlockchain()
 
 	hash2 := newbc.GetTailBlockHash()
-	assert.ElementsMatch(t,hash1, hash2)
+	assert.ElementsMatch(t, hash1, hash2)
 }
 
 func TestBlockPool_AddParentToForkPoolWhenEmpty(t *testing.T) {
 	db := storage.NewRamStorage()
 	defer db.Close()
 	addr := Address{"17DgRtQVvaytkiKAfXx9XbV23MESASSwUz"}
-	bc := CreateBlockchain(addr,db,nil)
+	bc := CreateBlockchain(addr, db, nil)
 
 	bp := NewBlockPool(10)
 	bp.SetBlockchain(bc)
 	blk1 := GenerateMockBlock()
 	bp.addParentToForkPool(blk1)
 
-	assert.Equal(t,blk1,bp.forkPool[0])
+	assert.Equal(t, blk1, bp.forkPool[0])
 }
 
 func TestBlockPool_AddParentToForkPool(t *testing.T) {
 	db := storage.NewRamStorage()
 	defer db.Close()
 	addr := Address{"17DgRtQVvaytkiKAfXx9XbV23MESASSwUz"}
-	bc := CreateBlockchain(addr,db,nil)
-
+	bc := CreateBlockchain(addr, db, nil)
 
 	bp := NewBlockPool(10)
 	bp.SetBlockchain(bc)
@@ -66,29 +67,28 @@ func TestBlockPool_AddParentToForkPool(t *testing.T) {
 	bp.forkPool = append(bp.forkPool, blk1)
 	bp.addParentToForkPool(blk2)
 
-	assert.Equal(t,blk2,bp.forkPool[1])
+	assert.Equal(t, blk2, bp.forkPool[1])
 }
 
 func TestBlockPool_AddTailToForkPoolWhenEmpty(t *testing.T) {
 	db := storage.NewRamStorage()
 	defer db.Close()
 	addr := Address{"17DgRtQVvaytkiKAfXx9XbV23MESASSwUz"}
-	bc:= CreateBlockchain(addr,db,nil)
-
+	bc := CreateBlockchain(addr, db, nil)
 
 	bp := NewBlockPool(10)
 	bp.SetBlockchain(bc)
 	blk1 := GenerateMockBlock()
 	bp.addTailToForkPool(blk1)
 
-	assert.Equal(t,blk1,bp.forkPool[0])
+	assert.Equal(t, blk1, bp.forkPool[0])
 }
 
 func TestBlockPool_AddTailToForkPool(t *testing.T) {
 	db := storage.NewRamStorage()
 	defer db.Close()
 	addr := Address{"17DgRtQVvaytkiKAfXx9XbV23MESASSwUz"}
-	bc:= CreateBlockchain(addr,db,nil)
+	bc := CreateBlockchain(addr, db, nil)
 
 	bp := NewBlockPool(10)
 	bp.SetBlockchain(bc)
@@ -97,14 +97,14 @@ func TestBlockPool_AddTailToForkPool(t *testing.T) {
 	bp.forkPool = append(bp.forkPool, blk1)
 	bp.addTailToForkPool(blk2)
 
-	assert.Equal(t,blk2,bp.forkPool[0])
+	assert.Equal(t, blk2, bp.forkPool[0])
 }
 
 func TestBlockPool_ForkPoolLen(t *testing.T) {
 	db := storage.NewRamStorage()
 	defer db.Close()
 	addr := Address{"17DgRtQVvaytkiKAfXx9XbV23MESASSwUz"}
-	bc:= CreateBlockchain(addr,db,nil)
+	bc := CreateBlockchain(addr, db, nil)
 
 	bp := NewBlockPool(10)
 	bp.SetBlockchain(bc)
@@ -113,14 +113,14 @@ func TestBlockPool_ForkPoolLen(t *testing.T) {
 	bp.forkPool = append(bp.forkPool, blk1)
 	bp.forkPool = append(bp.forkPool, blk2)
 
-	assert.Equal(t,2, bp.ForkPoolLen())
+	assert.Equal(t, 2, bp.ForkPoolLen())
 }
 
 func TestBlockPool_GetForkPoolHeadBlk(t *testing.T) {
 	db := storage.NewRamStorage()
 	defer db.Close()
 	addr := Address{"17DgRtQVvaytkiKAfXx9XbV23MESASSwUz"}
-	bc:= CreateBlockchain(addr,db,nil)
+	bc := CreateBlockchain(addr, db, nil)
 
 	bp := NewBlockPool(10)
 	bp.SetBlockchain(bc)
@@ -129,14 +129,14 @@ func TestBlockPool_GetForkPoolHeadBlk(t *testing.T) {
 	bp.forkPool = append(bp.forkPool, blk1)
 	bp.forkPool = append(bp.forkPool, blk2)
 
-	assert.Equal(t,blk2, bp.GetForkPoolHeadBlk())
+	assert.Equal(t, blk2, bp.GetForkPoolHeadBlk())
 }
 
 func TestBlockPool_GetForkPoolTailBlk(t *testing.T) {
 	db := storage.NewRamStorage()
 	defer db.Close()
 	addr := Address{"17DgRtQVvaytkiKAfXx9XbV23MESASSwUz"}
-	bc:= CreateBlockchain(addr,db,nil)
+	bc := CreateBlockchain(addr, db, nil)
 
 	bp := NewBlockPool(10)
 	bp.SetBlockchain(bc)
@@ -145,14 +145,14 @@ func TestBlockPool_GetForkPoolTailBlk(t *testing.T) {
 	bp.forkPool = append(bp.forkPool, blk1)
 	bp.forkPool = append(bp.forkPool, blk2)
 
-	assert.Equal(t,blk1, bp.GetForkPoolTailBlk())
+	assert.Equal(t, blk1, bp.GetForkPoolTailBlk())
 }
 
 func TestBlockPool_IsParentOfFork(t *testing.T) {
 	db := storage.NewRamStorage()
 	defer db.Close()
 	addr := Address{"17DgRtQVvaytkiKAfXx9XbV23MESASSwUz"}
-	bc:= CreateBlockchain(addr,db,nil)
+	bc := CreateBlockchain(addr, db, nil)
 
 	bp := NewBlockPool(10)
 	bp.SetBlockchain(bc)
@@ -174,7 +174,7 @@ func TestBlockPool_IsTailOfFork(t *testing.T) {
 	db := storage.NewRamStorage()
 	defer db.Close()
 	addr := Address{"17DgRtQVvaytkiKAfXx9XbV23MESASSwUz"}
-	bc:= CreateBlockchain(addr,db,nil)
+	bc := CreateBlockchain(addr, db, nil)
 
 	bp := NewBlockPool(10)
 	bp.SetBlockchain(bc)
@@ -215,9 +215,9 @@ func TestBlockPool_UpdateForkFromHeadHigherHeight(t *testing.T) {
 	pool := NewBlockPool(5)
 	pool.SetBlockchain(bc)
 
-	blk := NewBlock(nil,nil)
+	blk := NewBlock(nil, nil)
 	blk.SetHash(blk.CalculateHash())
-	blk2 := NewBlock(nil,blk)
+	blk2 := NewBlock(nil, blk)
 	blk2.header.height = 8
 	blk.header.height = 7
 	pool.forkPool = append(pool.forkPool, blk2)
@@ -250,9 +250,9 @@ func TestBlockPool_UpdateForkFromTailHigherHeight(t *testing.T) {
 	pool := NewBlockPool(5)
 	pool.SetBlockchain(bc)
 
-	blk := NewBlock(nil,nil)
+	blk := NewBlock(nil, nil)
 	blk.SetHash(blk.CalculateHash())
-	blk2 := NewBlock(nil,blk)
+	blk2 := NewBlock(nil, blk)
 	blk2.header.height = 8
 	blk.header.height = 7
 	pool.forkPool = append(pool.forkPool, blk)
@@ -264,11 +264,11 @@ func TestBlockPool_UpdateForkFromTailHigherHeight(t *testing.T) {
 
 func TestBlockPool_IsHigherThanForkSameHeight(t *testing.T) {
 	pool := NewBlockPool(5)
-	blk := NewBlock(nil,nil)
+	blk := NewBlock(nil, nil)
 	blk.header.height = 5
 	pool.forkPool = append(pool.forkPool, blk)
 
-	blk2 := NewBlock(nil,nil)
+	blk2 := NewBlock(nil, nil)
 	blk2.header.height = 5
 
 	assert.False(t, pool.IsHigherThanFork(blk2))
@@ -276,11 +276,11 @@ func TestBlockPool_IsHigherThanForkSameHeight(t *testing.T) {
 
 func TestBlockPool_IsHigherThanForkHigherHeight(t *testing.T) {
 	pool := NewBlockPool(5)
-	blk := NewBlock(nil,nil)
+	blk := NewBlock(nil, nil)
 	blk.header.height = 5
 	pool.forkPool = append(pool.forkPool, blk)
 
-	blk2 := NewBlock(nil,nil)
+	blk2 := NewBlock(nil, nil)
 	blk2.header.height = 6
 
 	assert.True(t, pool.IsHigherThanFork(blk2))
@@ -288,11 +288,11 @@ func TestBlockPool_IsHigherThanForkHigherHeight(t *testing.T) {
 
 func TestBlockPool_IsHigherThanForkLowerHeight(t *testing.T) {
 	pool := NewBlockPool(5)
-	blk := NewBlock(nil,nil)
+	blk := NewBlock(nil, nil)
 	blk.header.height = 5
 	pool.forkPool = append(pool.forkPool, blk)
 
-	blk2 := NewBlock(nil,nil)
+	blk2 := NewBlock(nil, nil)
 	blk2.header.height = 4
 
 	assert.False(t, pool.IsHigherThanFork(blk2))
@@ -305,37 +305,105 @@ func TestBlockPool_IsHigherThanForkNilInput(t *testing.T) {
 
 func TestBlockPool_IsHigherThanForkEmptyPool(t *testing.T) {
 	pool := NewBlockPool(5)
-	blk := NewBlock(nil,nil)
+	blk := NewBlock(nil, nil)
 	assert.True(t, pool.IsHigherThanFork(blk))
 }
 
 func TestBlockPool_ReInitializeForkPool(t *testing.T) {
 	pool := NewBlockPool(5)
-	blk := NewBlock(nil,nil)
+	blk := NewBlock(nil, nil)
 	blk.header.height = 5
 	pool.forkPool = append(pool.forkPool, blk)
 
 	pool.ResetForkPool()
 
-	assert.Empty(t,pool.forkPool)
+	assert.Empty(t, pool.forkPool)
 }
 
-func TestLRUCacheWithIntKeyAndValue(t *testing.T){
-	bp:= NewBlockPool(5)
-	assert.Equal(t, 0, bp.blkCache.Len())
-	const addCount = 200
-	for i:=0;i < addCount; i++ {
-		if bp.blkCache.Len() == BlockPoolLRUCacheLimit{
-			bp.blkCache.RemoveOldest()
-		}
-		bp.blkCache.Add(i, i )
+// func TestLRUCacheWithIntKeyAndValue(t *testing.T){
+// 	bp:= NewBlockPool(5)
+// 	assert.Equal(t, 0, bp.blkCache.Len())
+// 	const addCount = 200
+// 	for i:=0;i < addCount; i++ {
+// 		if bp.blkCache.Len() == BlockPoolLRUCacheLimit{
+// 			bp.blkCache.RemoveOldest()
+// 		}
+// 		bp.blkCache.Add(i, i )
+// 	}
+// 	//test blkCache is full
+// 	assert.Equal(t, BlockPoolLRUCacheLimit, bp.blkCache.Len())
+// 	//test blkCache contains last added key
+// 	assert.Equal(t, true, bp.blkCache.Contains(199))
+// 	//test blkCache oldest key = addcount - BlockPoolLRUCacheLimit
+// 	assert.Equal(t, addCount - BlockPoolLRUCacheLimit, bp.blkCache.Keys()[0])
+// }
+
+func TestMergeTwoBlockChain(t *testing.T) {
+	setup()
+	store := storage.NewRamStorage()
+	defer store.Close()
+
+	minerWallet, err := CreateWallet()
+	if err != nil {
+		logger.Panic(err)
 	}
-	//test blkCache is full
-	assert.Equal(t, BlockPoolLRUCacheLimit, bp.blkCache.Len())
-	//test blkCache contains last added key
-	assert.Equal(t, true, bp.blkCache.Contains(199))
-	//test blkCache oldest key = addcount - BlockPoolLRUCacheLimit
-	assert.Equal(t, addCount - BlockPoolLRUCacheLimit, bp.blkCache.Keys()[0])
+
+	//Create one miner
+	pow := consensus.NewProofOfWork()
+	pow.SetTargetBit(10)
+	bc, err := CreateBlockchain(minerWallet.GetAddress(), store, pow)
+	if err != nil {
+		logger.Panic(err)
+	}
+
+	node := network.FakeNodeWithPidAndAddr(bc, "test", "test")
+	pow.Setup(node, minerWallet.GetAddress().Address)
+	pow.Start()
+	for bc.GetMaxHeight() < 5 {
+	}
+	pow.Stop()
+	time.Sleep(time.Millisecond * 200)
+
+	//fork blockchain
+	forkMinerWallet, err := CreateWallet()
+	forkBc = bc.Iterator()
+
+	//create fork miner
+	forkPow := consensus.NewProofOfWork()
+	forkPow.SetTargetBit(10)
+	forkNode := network.FakeNodeWithPidAndAddr(forkBc, "testFork", "testFork")
+	forkPow.Setup(forkNode, forkMinerWallet.GetAddress().Address)
+
+	startForkHashString := string(bc.GetTailBlockHash())
+	//Start old miner
+	pow.Start()
+	for bc.GetMaxHeight() < 7 {
+	}
+	pow.Stop()
+
+	//Start fork miner and with bigger height
+	forkPow.Start()
+	for forkBc.GetMaxHeight() <= bc.GetMaxHeight() {
+	}
+	forkPow.Stop()
+	time.Sleep(time.Millisecond * 200)
+
+	for startForkHashString != string(forkPow.GetTailBlockHash()) {
+		block, _ := forkPow.Next()
+		bc.GetBlockPool().Push(block, forkNode.GetPeerID())
+	}
+
+	teardown()
 }
 
+func setup() {
+	cleanUpDatabase()
+}
 
+func teardown() {
+	cleanUpDatabase()
+}
+
+func cleanUpDatabase() {
+	client.RemoveWalletFile()
+}

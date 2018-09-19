@@ -47,20 +47,17 @@ type Blockchain struct {
 	blockPool     BlockPoolInterface
 	consensus     Consensus
 	txPool        *TransactionPool
-	forkTree      *common.Tree
 }
 
 // CreateBlockchain creates a new blockchain db
 func CreateBlockchain(address Address, db storage.Storage, consensus Consensus) *Blockchain {
 	genesis := NewGenesisBlock(address.Address)
-	tree := common.NewTree(genesis.GetHash(), genesis)
 	bc := &Blockchain{
 		genesis.GetHash(),
 		db,
 		NewBlockPool(BlockPoolMaxSize),
 		consensus,
 		NewTransactionPool(),
-		tree,
 	}
 	bc.blockPool.SetBlockchain(bc)
 	bc.AddBlockToTail(genesis)
@@ -80,7 +77,6 @@ func GetBlockchain(db storage.Storage, consensus Consensus) (*Blockchain, error)
 		NewBlockPool(BlockPoolMaxSize),
 		consensus,
 		NewTransactionPool(), //TODO: Need to retrieve transaction pool from db
-		nil,
 	}
 	bc.blockPool.SetBlockchain(bc)
 	return bc, nil
