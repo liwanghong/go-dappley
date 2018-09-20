@@ -24,7 +24,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dappley/go-dappley/common"
 	"github.com/dappley/go-dappley/storage"
 	logger "github.com/sirupsen/logrus"
 )
@@ -257,7 +256,7 @@ func (bc *Blockchain) FindUTXO(pubKeyHash []byte) ([]TXOutput, error) {
 }
 
 func (bc *Blockchain) Iterator() *Blockchain {
-	return &Blockchain{bc.tailBlockHash, bc.db, nil, bc.consensus, nil, bc.forkTree}
+	return &Blockchain{bc.tailBlockHash, bc.db, nil, bc.consensus, nil}
 }
 
 func (bc *Blockchain) Next() (*Block, error) {
