@@ -255,12 +255,14 @@ func (pool *BlockPool) addBlock2Pool(blk *Block, sender peer.ID) {
 	existForkBlock, ok := pool.forkBlocks[blk.HashString()]
 	if ok {
 		//New block is exist block's parent block
+		logger.Debugf("Add block to expect node %v", blk.GetHash())
 		existForkBlock.forkState = ForkBlockReady
 		existForkBlock.block = blk
 
 		pool.checkAndRequestBlock(blk.GetPrevHash(), sender)
 	} else {
 		//New block is fork tail block
+		logger.Debugf("Add block to tail %v", blk.GetHash())
 		pool.forkTails.Add(blk.HashString(), blk)
 		pool.forkBlocks[blk.HashString()] = &ForkBlock{ForkBlockReady, 0, blk}
 		if pool.forkTails.Contains(string(blk.GetPrevHash())) {
