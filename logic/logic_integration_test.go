@@ -622,7 +622,7 @@ func TestMergeTwoBlockChain(t *testing.T) {
 
 	//fork blockchain
 	forkMinerWallet, err := CreateWallet()
-	forkBc = bc.Iterator()
+	forkBc := bc.Iterator()
 
 	//create fork miner
 	forkPow := consensus.NewProofOfWork()
@@ -644,7 +644,7 @@ func TestMergeTwoBlockChain(t *testing.T) {
 	forkPow.Stop()
 	time.Sleep(time.Millisecond * 200)
 
-	forkIter = forkBc.Iterator()
+	forkIter := forkBc.Iterator()
 	for startForkHashString != string(forkIter.GetTailBlockHash()) {
 		block, _ := forkIter.Next()
 		bc.GetBlockPool().Push(block, forkNode.GetPeerID())
