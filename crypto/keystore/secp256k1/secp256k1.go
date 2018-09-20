@@ -28,7 +28,7 @@ package secp256k1
 #define USE_SCALAR_INV_BUILTIN
 #define ENABLE_MODULE_RECOVERY
 #define NDEBUG
-#include "./libsecp256k1/src/secp256k1.c"
+#include "secp256k1.c"
 */
 import "C"
 
