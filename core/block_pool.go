@@ -71,7 +71,7 @@ func NewBlockPool(size int) *BlockPool {
 	}
 
 	pool.forkTails, _ = lru.NewWithEvict(BlockPoolForkChainLimit, func(key interface{}, value interface{}) {
-		if pool.skipEvict {
+		if pool.skipEvict == false {
 			pool.removeOldForkTail(key.(string))
 		}
 	})
