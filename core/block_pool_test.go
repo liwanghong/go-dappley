@@ -20,7 +20,6 @@ package core
 
 import (
 	"github.com/dappley/go-dappley/storage"
-	logger "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
