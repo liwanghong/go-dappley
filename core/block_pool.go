@@ -217,10 +217,10 @@ func (pool *BlockPool) Push(block *Block, pid peer.ID) {
 	pool.handleRecvdBlock(block, pid)
 }
 func (pool *BlockPool) handleRecvdBlock(blk *Block, sender peer.ID) {
-	logger.Debug("BlockPool: Received a new block: ", blk.HashString(), " From Sender: ", sender.String())
+	logger.Debugf("BlockPool: Received a new block: %v", blk.GetHash(), " From Sender: ", sender.String())
 
 	if pool.bc.IsInBlockchain(blk.GetHash()) {
-		logger.Debug("BlockPool: Blockchain already contains blk: ", blk.HashString(), " returning")
+		logger.Debugf("BlockPool: Blockchain already contains blk: %v", blk.GetHash(), " returning")
 		return
 	}
 
@@ -228,14 +228,14 @@ func (pool *BlockPool) handleRecvdBlock(blk *Block, sender peer.ID) {
 	existForkBlock, ok := pool.forkBlocks[blk.HashString()]
 	if ok {
 		if existForkBlock.forkState == ForkBlockReady {
-			logger.Debug("BlockPool: Fork Pool already contains blk: ", blk.HashString())
+			logger.Debugf("BlockPool: Fork Pool already contains blk: ", blk.GetHash())
 			return
 		}
 	}
 
 	//TODO: verify
 	if true {
-		logger.Debug("BlockPool: Adding node key to bpcache: ", blk.HashString())
+		logger.Debugf("BlockPool: Adding node key to bpcache: %v", blk.GetHash())
 	} else {
 		logger.Debug("BlockPool: Block: ", blk.HashString(), " did not pass verification process, discarding block")
 		return
