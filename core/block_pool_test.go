@@ -19,8 +19,6 @@
 package core
 
 import (
-	"github.com/dappley/go-dappley/client"
-	"github.com/dappley/go-dappley/consensus"
 	"github.com/dappley/go-dappley/storage"
 	logger "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
