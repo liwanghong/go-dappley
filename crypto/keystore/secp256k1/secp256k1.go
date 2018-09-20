@@ -19,8 +19,8 @@
 package secp256k1
 
 /*
-#cgo CFLAGS: -I./libsecp256k1
-#cgo CFLAGS: -I./libsecp256k1/src/
+#cgo CFLAGS: -I${SRCDIR}/libsecp256k1
+#cgo CFLAGS: -I${SRCDIR}/libsecp256k1/src/
 #define USE_NUM_NONE
 #define USE_FIELD_10X26
 #define USE_FIELD_INV_BUILTIN
