@@ -303,7 +303,7 @@ func (pool *BlockPool) isForkCanMerge() bool {
 
 	tailBlockValue, ok := pool.forkTails.Get(string(pool.longestTailHash))
 	if ok != false {
-		logger.Error("ERROR: tailHash not in forkTail Cache")
+		logger.Error("ERROR: tailHash not in forkTail Cache %v", pool.longestTailHash)
 		return false
 	}
 
