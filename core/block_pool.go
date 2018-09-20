@@ -368,6 +368,7 @@ func (pool *BlockPool) refreshLongestTailHash() {
 }
 
 func (pool *BlockPool) removeOldForkTail(hashString string) {
+	logger.Debug("Remove old fork tail ", hashString)
 	forkBlock, ok := pool.forkBlocks[hashString]
 	for ok {
 		forkBlock.childrenCount--
