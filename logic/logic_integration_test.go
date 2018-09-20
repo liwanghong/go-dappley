@@ -36,8 +36,8 @@ import (
 	"github.com/dappley/go-dappley/core"
 	"github.com/dappley/go-dappley/network"
 	"github.com/dappley/go-dappley/storage"
-	"github.com/stretchr/testify/assert"
 	logger "github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 )
 
 const InvalidAddress = "Invalid Address"
@@ -482,11 +482,12 @@ func TestBlockMsgMeshRelay(t *testing.T) {
 }
 
 const testport_msg_relay_port = 21202
+
 func TestBlockMsgWithDpos(t *testing.T) {
 	const (
-		timeBetweenBlock= 2
-		dposRounds= 3
-		bufferTime= 1
+		timeBetweenBlock = 2
+		dposRounds       = 3
+		bufferTime       = 1
 	)
 
 	miners := []string{
@@ -505,7 +506,7 @@ func TestBlockMsgWithDpos(t *testing.T) {
 	for i := 0; i < len(miners); i++ {
 		dpos := consensus.NewDpos()
 		dpos.SetDynasty(dynasty)
-		dpos.SetTargetBit(0)        //gennerate a block every round
+		dpos.SetTargetBit(0) //gennerate a block every round
 		bc := core.CreateBlockchain(core.Address{miners[0]}, storage.NewRamStorage(), dpos)
 		node := network.NewNode(bc)
 		node.Start(testport_msg_relay_port + i)
@@ -525,7 +526,6 @@ func TestBlockMsgWithDpos(t *testing.T) {
 		dposArray[i].Start()
 	}
 
-
 	time.Sleep(time.Second * time.Duration(dynasty.GetDynastyTime()*dposRounds+bufferTime))
 
 	for i := 0; i < len(miners); i++ {
@@ -538,7 +538,6 @@ func TestBlockMsgWithDpos(t *testing.T) {
 		assert.Equal(t, uint64(dynasty.GetDynastyTime()*dposRounds/timeBetweenBlock), dposArray[i].GetBlockChain().GetMaxHeight())
 	}
 }
-
 
 const testport_fork = 10200
 
@@ -593,6 +592,66 @@ func TestForkChoice(t *testing.T) {
 	for i := 0; i < numOfNodes-1; i++ {
 		assert.True(t, compareTwoBlockchains(bcs[0], bcs[i]))
 	}
+}
+
+func TestMergeTwoBlockChain(t *testing.T) {
+	setup()
+	store := storage.NewRamStorage()
+	defer store.Close()
+
+	minerWallet, err := CreateWallet()
+	if err != nil {
+		logger.Panic(err)
+	}
+
+	//Create one miner
+	pow := consensus.NewProofOfWork()
+	pow.SetTargetBit(10)
+	bc, err := CreateBlockchain(minerWallet.GetAddress(), store, pow)
+	if err != nil {
+		logger.Panic(err)
+	}
+
+	node := network.FakeNodeWithPidAndAddr(bc, "test", "test")
+	pow.Setup(node, minerWallet.GetAddress().Address)
+	pow.Start()
+	for bc.GetMaxHeight() < 5 {
+	}
+	pow.Stop()
+	time.Sleep(time.Millisecond * 200)
+
+	//fork blockchain
+	forkMinerWallet, err := CreateWallet()
+	forkBc = bc.Iterator()
+
+	//create fork miner
+	forkPow := consensus.NewProofOfWork()
+	forkPow.SetTargetBit(10)
+	forkNode := network.FakeNodeWithPidAndAddr(forkBc, "testFork", "testFork")
+	forkPow.Setup(forkNode, forkMinerWallet.GetAddress().Address)
+
+	startForkHashString := string(bc.GetTailBlockHash())
+	//Start old miner
+	pow.Start()
+	for bc.GetMaxHeight() < 7 {
+	}
+	pow.Stop()
+
+	//Start fork miner and with bigger height
+	forkPow.Start()
+	for forkBc.GetMaxHeight() <= bc.GetMaxHeight() {
+	}
+	forkPow.Stop()
+	time.Sleep(time.Millisecond * 200)
+
+	forkIter = forkBc.Iterator()
+	for startForkHashString != string(forkIter.GetTailBlockHash()) {
+		block, _ := forkIter.Next()
+		bc.GetBlockPool().Push(block, forkNode.GetPeerID())
+	}
+
+	assert.Equal(t, string(forkBc.GetTailBlockHash()), string(bc.GetTailBlockHash()), "Fork merge to bc")
+	teardown()
 }
 
 func TestCompare(t *testing.T) {
