@@ -388,11 +388,13 @@ func TestMergeTwoBlockChain(t *testing.T) {
 	forkPow.Stop()
 	time.Sleep(time.Millisecond * 200)
 
-	for startForkHashString != string(forkPow.GetTailBlockHash()) {
-		block, _ := forkPow.Next()
+	forkIter = forkBc.Iterator()
+	for startForkHashString != string(forkIter.GetTailBlockHash()) {
+		block, _ := forkIter.Next()
 		bc.GetBlockPool().Push(block, forkNode.GetPeerID())
 	}
 
+	assert.Equal(t, string(forkBc.GetTailBlockHash()), string(bc.GetTailBlockHash()), "Fork merge to bc")
 	teardown()
 }
 
