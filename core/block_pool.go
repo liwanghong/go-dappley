@@ -303,7 +303,7 @@ func (pool *BlockPool) isForkCanMerge() bool {
 
 	tailBlockValue, ok := pool.forkTails.Get(string(pool.longestTailHash))
 	if ok != false {
-		logger.Error("ERROR: tailHash not in forkTail Cache %v", pool.longestTailHash)
+		logger.Errorf("ERROR: tailHash not in forkTail Cache %v", pool.longestTailHash)
 		return false
 	}
 
@@ -373,14 +373,14 @@ func (pool *BlockPool) removeOldForkTail(hashString string) {
 		forkBlock.childrenCount--
 		if forkBlock.forkState == ForkBlockExpect {
 			delete(pool.forkBlocks, hashString)
+			break
 		} else if forkBlock.childrenCount <= 0 {
 			delete(pool.forkBlocks, hashString)
-			break
+			logger.Debugf("Remove old fork tail: %v", forkBlock.block.GetHash())
+		    forkBlock, ok = pool.forkBlocks[string(forkBlock.block.GetPrevHash())]
 		} else {
 			break
 		}
-        logger.Debugf("Remove old fork tail: %v", forkBlock.block.GetHash())
-		forkBlock, ok = pool.forkBlocks[string(forkBlock.block.GetPrevHash())]
 	}
 }
 
