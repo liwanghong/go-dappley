@@ -542,7 +542,7 @@ func TestBlockMsgWithDpos(t *testing.T) {
 const testport_fork = 10200
 
 func TestForkChoice(t *testing.T) {
-
+	logger.SetLevel(logger.DebugLevel)
 	var pows []*consensus.ProofOfWork
 	var bcs []*core.Blockchain
 	addr := core.Address{"17DgRtQVvaytkiKAfXx9XbV23MESASSwUz"}
@@ -562,7 +562,7 @@ func TestForkChoice(t *testing.T) {
 
 		n := network.NewNode(bcs[i])
 		pow.Setup(n, addr.Address)
-		pow.SetTargetBit(16)
+		pow.SetTargetBit(10)
 		n.Start(testport_fork + i)
 		pows = append(pows, pow)
 		nodes = append(nodes, n)
@@ -592,66 +592,6 @@ func TestForkChoice(t *testing.T) {
 	for i := 0; i < numOfNodes-1; i++ {
 		assert.True(t, compareTwoBlockchains(bcs[0], bcs[i]))
 	}
-}
-
-func TestMergeTwoBlockChain(t *testing.T) {
-	setup()
-	store := storage.NewRamStorage()
-	defer store.Close()
-
-	minerWallet, err := CreateWallet()
-	if err != nil {
-		logger.Panic(err)
-	}
-
-	//Create one miner
-	pow := consensus.NewProofOfWork()
-	pow.SetTargetBit(10)
-	bc, err := CreateBlockchain(minerWallet.GetAddress(), store, pow)
-	if err != nil {
-		logger.Panic(err)
-	}
-
-	node := network.FakeNodeWithPidAndAddr(bc, "test", "test")
-	pow.Setup(node, minerWallet.GetAddress().Address)
-	pow.Start()
-	for bc.GetMaxHeight() < 5 {
-	}
-	pow.Stop()
-	time.Sleep(time.Millisecond * 200)
-
-	//fork blockchain
-	forkMinerWallet, err := CreateWallet()
-	forkBc := bc.Iterator()
-
-	//create fork miner
-	forkPow := consensus.NewProofOfWork()
-	forkPow.SetTargetBit(10)
-	forkNode := network.FakeNodeWithPidAndAddr(forkBc, "testFork", "testFork")
-	forkPow.Setup(forkNode, forkMinerWallet.GetAddress().Address)
-
-	startForkHashString := string(bc.GetTailBlockHash())
-	//Start old miner
-	pow.Start()
-	for bc.GetMaxHeight() < 7 {
-	}
-	pow.Stop()
-
-	//Start fork miner and with bigger height
-	forkPow.Start()
-	for forkBc.GetMaxHeight() <= bc.GetMaxHeight() {
-	}
-	forkPow.Stop()
-	time.Sleep(time.Millisecond * 200)
-
-	forkIter := forkBc.Iterator()
-	for startForkHashString != string(forkIter.GetTailBlockHash()) {
-		block, _ := forkIter.Next()
-		bc.GetBlockPool().Push(block, forkNode.GetPeerID())
-	}
-
-	assert.Equal(t, string(forkBc.GetTailBlockHash()), string(bc.GetTailBlockHash()), "Fork merge to bc")
-	teardown()
 }
 
 func TestCompare(t *testing.T) {
