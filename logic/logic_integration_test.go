@@ -560,7 +560,7 @@ func TestForkChoice(t *testing.T) {
 		bc := core.CreateBlockchain(addr, db, pow)
 		bcs = append(bcs, bc)
 
-		wallet ：= client.NewWallet()
+		wallet := client.NewWallet()
 
 		n := network.NewNode(bcs[i])
 		pow.Setup(n, wallet.GetAddress())
