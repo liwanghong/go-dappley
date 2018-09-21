@@ -119,7 +119,7 @@ func (index *UTXOIndex) Update(newBlk *Block, db storage.Storage) error {
 			}
 		}
 
-		logger.Debugf("UTXO: Add block %v with txId %v", block.GetHash(), tx.ID)
+		logger.Debugf("UTXO: Add block %v with txId %v", newBlk.GetHash(), tx.ID)
 
 		for i, txout := range tx.Vout {
 			tempIndex.addUTXO(txout, tx.ID, i)
@@ -149,7 +149,7 @@ func newUTXO(txout TXOutput, txid []byte, vout int) *UTXO {
 func (index UTXOIndex) undoTxsInBlock(blk *Block, bc *Blockchain, db storage.Storage) {
 
 	for _, tx := range blk.GetTransactions() {
-		logger.Debugf("UTXO: undo block %v with txId %v", block.GetHash(), tx.ID)
+		logger.Debugf("UTXO: undo block %v with txId %v", blk.GetHash(), tx.ID)
 		err := index.excludeVoutsInTx(tx, db)
 		if err != nil {
 			logger.Panic(err)
