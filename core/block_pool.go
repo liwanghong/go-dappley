@@ -349,7 +349,9 @@ func (pool *BlockPool) updateForkPool() {
 		block = prevBlock.block
 	}
 
+	pool.skipEvict = true
 	pool.forkTails.Remove(string(pool.longestTailHash))
+	pool.skipEvict = false
 	pool.longestTailHash = nil
 	pool.refreshLongestTailHash()
 }
