@@ -564,18 +564,10 @@ func TestForkChoice(t *testing.T) {
 
 		n := network.NewNode(bcs[i])
 		pow.Setup(n, wallet.GetAddress().Address)
-		pow.SetTargetBit(10)
+		pow.SetTargetBit(14)
 		n.Start(testport_fork + i)
 		pows = append(pows, pow)
 		nodes = append(nodes, n)
-	}
-
-	//start node0 first. the next node starts mining after the previous node is at least at height 5
-	for i := 0; i < numOfNodes; i++ {
-		pows[i].Start()
-		//seed node broadcasts syncpeers
-		for bcs[i].GetMaxHeight() < 5 {
-		}
 	}
 
 	for i := 0; i < numOfNodes; i++ {
@@ -588,6 +580,19 @@ func TestForkChoice(t *testing.T) {
 		nodes[0].SyncPeersBroadcast()
 	}
 
+	//start node0 first. the next node starts mining after the previous node is at least at height 5
+	for i := 0; i < numOfNodes; i++ {
+		pows[i].Start()
+		//seed node broadcasts syncpeers
+		for bcs[i].GetMaxHeight() < 5 {
+		}
+	}
+
+	time.Sleep(time.Second * 5)
+
+	for i := 0; i < numOfNodes; i++ {
+		pows[i].Stop()
+	}
 	time.Sleep(time.Second * 5)
 
 	//Check if all nodes have the same tail block
