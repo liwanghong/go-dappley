@@ -563,7 +563,7 @@ func TestForkChoice(t *testing.T) {
 		wallet := client.NewWallet()
 
 		n := network.NewNode(bcs[i])
-		pow.Setup(n, wallet.GetAddress())
+		pow.Setup(n, wallet.GetAddress().Address)
 		pow.SetTargetBit(10)
 		n.Start(testport_fork + i)
 		pows = append(pows, pow)
