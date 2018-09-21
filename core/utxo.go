@@ -109,7 +109,6 @@ func (index UTXOIndex) GetUTXOsByPubKey(pubkey []byte) []*UTXO {
 func (index *UTXOIndex) Update(newBlk *Block, db storage.Storage) error {
 	// Create a copy of the index so operations below are only temporal
 	tempIndex := index.deepCopy()
-
 	for _, tx := range newBlk.GetTransactions() {
 		if !tx.IsCoinbase() {
 			for _, txin := range tx.Vin {
@@ -119,6 +118,9 @@ func (index *UTXOIndex) Update(newBlk *Block, db storage.Storage) error {
 				}
 			}
 		}
+
+		logger.Debugf("UTXO: Add block %v with txId %v", block.GetHash(), tx.ID)
+
 		for i, txout := range tx.Vout {
 			tempIndex.addUTXO(txout, tx.ID, i)
 		}
@@ -147,6 +149,7 @@ func newUTXO(txout TXOutput, txid []byte, vout int) *UTXO {
 func (index UTXOIndex) undoTxsInBlock(blk *Block, bc *Blockchain, db storage.Storage) {
 
 	for _, tx := range blk.GetTransactions() {
+		logger.Debugf("UTXO: undo block %v with txId %v", block.GetHash(), tx.ID)
 		err := index.excludeVoutsInTx(tx, db)
 		if err != nil {
 			logger.Panic(err)
@@ -209,23 +212,22 @@ func (index UTXOIndex) removeUTXO(txid []byte, vout int) error {
 func getTXOutputSpent(in TXInput, bc *Blockchain) (TXOutput, int, error) {
 	tx, err := bc.FindTransaction(in.Txid)
 	if err != nil {
-		return  TXOutput{}, 0, errors.New("txInput refers to non-existing transaction")
+		return TXOutput{}, 0, errors.New("txInput refers to non-existing transaction")
 	}
 	return tx.Vout[in.Vout], in.Vout, nil
 }
 
-
 func (index UTXOIndex) deepCopy() UTXOIndex {
 	utxocopy := NewUTXOIndex()
 	copier.Copy(&utxocopy, &index)
-	if len(utxocopy)==0 {
+	if len(utxocopy) == 0 {
 		utxocopy = NewUTXOIndex()
 	}
 	return utxocopy
 }
 
 // GetUTXOIndexAtBlockHash returns the previous snapshot of UTXOIndex when the block of given hash was the tail block.
-func GetUTXOIndexAtBlockHash(db storage.Storage, bc *Blockchain, hash Hash) (UTXOIndex, error){
+func GetUTXOIndexAtBlockHash(db storage.Storage, bc *Blockchain, hash Hash) (UTXOIndex, error) {
 	index := LoadUTXOIndex(db)
 	deepCopy := index.deepCopy()
 	bci := bc.Iterator()
