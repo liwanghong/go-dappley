@@ -549,7 +549,7 @@ func TestForkChoice(t *testing.T) {
 	//wait for mining for at least "targetHeight" blocks
 	//targetHeight := uint64(4)
 	//num of nodes to be created in the test
-	numOfNodes := 2
+	numOfNodes := 10
 	nodes := []*network.Node{}
 	for i := 0; i < numOfNodes; i++ {
 		db := storage.NewRamStorage()
@@ -560,8 +560,10 @@ func TestForkChoice(t *testing.T) {
 		bc := core.CreateBlockchain(addr, db, pow)
 		bcs = append(bcs, bc)
 
+		wallet ：= client.NewWallet()
+
 		n := network.NewNode(bcs[i])
-		pow.Setup(n, addr.Address)
+		pow.Setup(n, wallet.GetAddress())
 		pow.SetTargetBit(10)
 		n.Start(testport_fork + i)
 		pows = append(pows, pow)
