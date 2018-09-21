@@ -338,12 +338,12 @@ func (pool *BlockPool) updateForkPool() {
 	blockValue, _ := pool.forkTails.Get(string(pool.longestTailHash))
 	block := blockValue.(*Block)
 	for {
-		if pool.bc.IsInBlockchain(block.GetHash()) {
-			break
-		}
-
 		delete(pool.forkBlocks, block.HashString())
 		pool.forkPool = append(pool.forkPool, block)
+
+		if pool.bc.IsInBlockchain(block.GetPrevHash()) {
+			break
+		}
 
 		prevBlock, _ := pool.forkBlocks[string(block.GetPrevHash())]
 		block = prevBlock.block
@@ -380,7 +380,7 @@ func (pool *BlockPool) removeOldForkTail(hashString string) {
 		} else if forkBlock.childrenCount <= 0 {
 			delete(pool.forkBlocks, hashString)
 			logger.Debugf("Remove old fork tail: %v", forkBlock.block.GetHash())
-		    forkBlock, ok = pool.forkBlocks[string(forkBlock.block.GetPrevHash())]
+			forkBlock, ok = pool.forkBlocks[string(forkBlock.block.GetPrevHash())]
 		} else {
 			break
 		}
