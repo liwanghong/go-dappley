@@ -82,7 +82,7 @@ func GetBlockchain(db storage.Storage, consensus Consensus) (*Blockchain, error)
 	}
 	bc.blockPool.SetBlockchain(bc)
 
-	tailBlock, err := bc.GetTailBlock()
+	_, err := bc.GetTailBlock()
 	if err != nil {
 		return nil, err
 	}
