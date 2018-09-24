@@ -154,43 +154,40 @@ func (pool *BlockPool) handleRecvdBlock(blk *Block, sender peer.ID)  {
 	//attach above partial tree to forktree
 	if pool.isForkCanMerge() == true {
 		//build forkchain based on highest leaf in tree
-		pool.updateForkPool()
+		forkPool := pool.updateForkPool()
 		//merge forkchain into blockchain
-		pool.bc.MergeFork()
+		pool.bc.MergeFork(forkPool)
 	}
 }
 
 func (pool *BlockPool) addBlock2Pool(blk *Block, sender peer.ID) {
+	if pool.forkTails.Contains(string(blk.GetPrevHash())) {
+		//Remove the new block's parent from forkTail
+		pool.skipEvict = true
+		pool.forkTails.Remove(string(blk.GetPrevHash()))
+		pool.skipEvict = false
+	}
+
 	existForkBlock, ok := pool.forkBlocks[blk.HashString()]
 	if ok {
 		//New block is exist block's parent block
 		logger.Debugf("Add block to expect node %v", blk.GetHash())
 		existForkBlock.forkState = ForkBlockReady
 		existForkBlock.block = blk
-
-		pool.checkAndRequestBlock(blk.GetPrevHash(), sender)
 	} else {
 		//New block is fork tail block
 		logger.Debugf("Add block to tail %v", blk.GetHash())
 		pool.forkTails.Add(blk.HashString(), blk)
 		pool.forkBlocks[blk.HashString()] = &ForkBlock{ForkBlockReady, 0, blk}
-		if pool.forkTails.Contains(string(blk.GetPrevHash())) {
-			//Remove the new block's parent from forkTail
-			parentBlockFork := pool.forkBlocks[string(blk.GetPrevHash())]
-			parentBlockFork.childrenCount++
-			pool.skipEvict = true
-			pool.forkTails.Remove(string(blk.GetPrevHash()))
-			pool.skipEvict = false
-		} else {
-			pool.checkAndRequestBlock(blk.GetPrevHash(), sender)
-}
 
 		lastLongestForkBlock, ok := pool.forkBlocks[string(pool.longestTailHash)]
 		if ok == false || lastLongestForkBlock.block.GetHeight() < blk.GetHeight() {
 			pool.longestTailHash = blk.GetHash()
-			}
 		}
 	}
+
+	pool.checkAndRequestBlock(blk.GetPrevHash(), sender)
+}
 
 // check block in blockchain or forkBlocks, If not in blockchain or forkBlocks, request it from sender
 func (pool *BlockPool) checkAndRequestBlock(hash Hash, sender peer.ID) {
@@ -200,17 +197,17 @@ func (pool *BlockPool) checkAndRequestBlock(hash Hash, sender peer.ID) {
 
 	existForkBlock, ok := pool.forkBlocks[string(hash)]
 	if ok {
-		existForkBlock.childrenCount++
+			existForkBlock.childrenCount++
 		}else{
-		pool.forkBlocks[string(hash)] = &ForkBlock{ForkBlockExpect, 1, nil}
-		pool.requestBlock(hash, sender)
+			pool.forkBlocks[string(hash)] = &ForkBlock{ForkBlockExpect, 1, nil}
+			pool.requestBlock(hash, sender)
 		}
 	}
 
 func (pool *BlockPool) isForkCanMerge() bool {
 	if pool.longestTailHash == nil {
 		return false
-}
+	}
 
 	tailBlockValue, ok := pool.forkTails.Get(string(pool.longestTailHash))
 	if ok != true {
@@ -228,13 +225,13 @@ func (pool *BlockPool) isForkCanMerge() bool {
 
 	for {
 		if pool.bc.IsInBlockchain(prevHash) {
-		return true
+			return true
 		}
 
 		prevBlock, ok := pool.forkBlocks[string(prevHash)]
 		if ok == false || prevBlock.forkState == ForkBlockExpect {
-		return false
-	}
+			return false
+		}
 
 		prevHash = prevBlock.block.GetPrevHash()
 	}
@@ -242,26 +239,28 @@ func (pool *BlockPool) isForkCanMerge() bool {
 	return true
 }
 
-func (pool *BlockPool) updateForkPool() {
+func (pool *BlockPool) updateForkPool() []*Block {
 	blockValue, _ := pool.forkTails.Get(string(pool.longestTailHash))
 	block := blockValue.(*Block)
+	var forkPool []*Block = [] 
 	for {
 		delete(pool.forkBlocks, block.HashString())
-		pool.forkPool = append(pool.forkPool, block)
+		forkPool = append(forkPool, block)
 
 		if pool.bc.IsInBlockchain(block.GetPrevHash()) {
-				break
-			}
+			break
+		}
 
 		prevBlock, _ := pool.forkBlocks[string(block.GetPrevHash())]
 		block = prevBlock.block
-		}
+	}
 
 	pool.skipEvict = true
 	pool.forkTails.Remove(string(pool.longestTailHash))
 	pool.skipEvict = false
 	pool.longestTailHash = nil
 	pool.refreshLongestTailHash()
+	return forkPool
 }
 
 func (pool *BlockPool) refreshLongestTailHash() {
@@ -274,12 +273,10 @@ func (pool *BlockPool) refreshLongestTailHash() {
 		if block.GetHeight() > maxHeight {
 			maxHeight = block.GetHeight()
 			longestHash = block.GetHash()
+		}
 	}
-	return forkblks
+    pool.longestTailHash = longestHash
 }
-
-	pool.longestTailHash = longestHash
-	}
 
 func (pool *BlockPool) removeOldForkTail(hashString string) {
 	forkBlock, ok := pool.forkBlocks[hashString]
