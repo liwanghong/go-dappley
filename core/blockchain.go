@@ -33,11 +33,11 @@ var tipKey = []byte("1")
 const BlockPoolMaxSize = 100
 const LengthForBlockToBeConsideredHistory = 100
 
-var(
-	ErrBlockDoesNotExist			= errors.New("ERROR: Block does not exist in blockchain")
-	ErrNotAbleToGetLastBlockHash 	= errors.New("ERROR: Not able to get last block hash in blockchain")
-	ErrTransactionNotFound			= errors.New("ERROR: Transaction not found")
-	ErrDuplicatedBlock			    = errors.New("ERROR: Block already exists in blockchain")
+var (
+	ErrBlockDoesNotExist         = errors.New("ERROR: Block does not exist in blockchain")
+	ErrNotAbleToGetLastBlockHash = errors.New("ERROR: Not able to get last block hash in blockchain")
+	ErrTransactionNotFound       = errors.New("ERROR: Transaction not found")
+	ErrDuplicatedBlock           = errors.New("ERROR: Block already exists in blockchain")
 )
 
 type Blockchain struct {
@@ -60,7 +60,7 @@ func CreateBlockchain(address Address, db storage.Storage, consensus Consensus) 
 	}
 	bc.blockPool.SetBlockchain(bc)
 	err := bc.AddBlockToTail(genesis)
-	if err!=nil {
+	if err != nil {
 		logger.Warn("Blockchain: Add Genesis Block Failed During Blockchain Creation!")
 	}
 	return bc
@@ -82,7 +82,7 @@ func GetBlockchain(db storage.Storage, consensus Consensus) (*Blockchain, error)
 	}
 	bc.blockPool.SetBlockchain(bc)
 
-	_, err := bc.GetTailBlock()
+	_, err = bc.GetTailBlock()
 	if err != nil {
 		return nil, err
 	}
@@ -143,17 +143,17 @@ func (bc *Blockchain) SetBlockPool(blockPool BlockPoolInterface) {
 	bc.blockPool.SetBlockchain(bc)
 }
 
-func (bc *Blockchain) AddBlockToTail(block *Block) error{
+func (bc *Blockchain) AddBlockToTail(block *Block) error {
 
 	//TODO: AddBlockToDb and SetTailBlockHash database operations need to be atomic
 	err := bc.AddBlockToDb(block)
-	if err!= nil{
+	if err != nil {
 		logger.Warn("Blockchain: Add Block To Database Failed! Height:", block.GetHeight(), " Hash:", hex.EncodeToString(block.GetHash()))
 		return err
 	}
 
 	err = bc.setTailBlockHash(block.GetHash())
-	if err!= nil{
+	if err != nil {
 		logger.Warn("Blockchain: Set Tail Block Hash Failed! Height:", block.GetHeight(), " Hash:", hex.EncodeToString(block.GetHash()))
 		return err
 	}
@@ -338,9 +338,9 @@ func (bc *Blockchain) String() string {
 }
 
 //record the new block in the database
-func (bc *Blockchain) AddBlockToDb(block *Block) error{
+func (bc *Blockchain) AddBlockToDb(block *Block) error {
 	err := bc.db.Put(block.GetHash(), block.Serialize())
-	if err!=nil {
+	if err != nil {
 		logger.Warn("Blockchain: Add Block To Database Failed!")
 	}
 	return err
@@ -384,10 +384,9 @@ func (bc *Blockchain) MergeFork(forkBlks []*Block) {
 	logger.Debug("Merged Fork!!")
 }
 
-
 func (bc *Blockchain) AddBlockToBlockchainTail(blk *Block) {
 	err := bc.AddBlockToTail(blk)
-	if err!=nil {
+	if err != nil {
 		logger.Error("Blockchain: Not Able To Add Block To Tail While Concatenating Fork To Blockchain!")
 	}
 	//Remove transactions in current transaction pool
@@ -396,9 +395,9 @@ func (bc *Blockchain) AddBlockToBlockchainTail(blk *Block) {
 
 func (bc *Blockchain) concatenateForkToBlockchain(forkBlks []*Block) {
 	if len(forkBlks) > 0 {
-		for i :=  len(forkBlks) - 1; i >= 0; i-- {
+		for i := len(forkBlks) - 1; i >= 0; i-- {
 			err := bc.AddBlockToTail(forkBlks[i])
-			if err!=nil {
+			if err != nil {
 				logger.Error("Blockchain: Not Able To Add Block To Tail While Concatenating Fork To Blockchain!")
 			}
 			//Remove transactions in current transaction pool
@@ -440,9 +439,9 @@ loop:
 	return true
 }
 
-func (bc *Blockchain) setTailBlockHash(hash Hash) error{
+func (bc *Blockchain) setTailBlockHash(hash Hash) error {
 	err := bc.db.Put(tipKey, hash)
-	if err!= nil{
+	if err != nil {
 		logger.Error("Blockchain: Set Tail Block Hash Failed!")
 		return err
 	}
