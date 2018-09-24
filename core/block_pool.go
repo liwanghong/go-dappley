@@ -242,7 +242,7 @@ func (pool *BlockPool) isForkCanMerge() bool {
 func (pool *BlockPool) updateForkPool() []*Block {
 	blockValue, _ := pool.forkTails.Get(string(pool.longestTailHash))
 	block := blockValue.(*Block)
-	var forkPool []*Block = [] 
+	var forkPool []*Block  
 	for {
 		delete(pool.forkBlocks, block.HashString())
 		forkPool = append(forkPool, block)
