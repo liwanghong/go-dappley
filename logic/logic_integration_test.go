@@ -31,7 +31,7 @@ import (
 	"github.com/dappley/go-dappley/core"
 	"github.com/dappley/go-dappley/network"
 	"github.com/dappley/go-dappley/storage"
-	logger "github.com/sirupsen/logrus"
+	//logger "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -223,7 +223,6 @@ func TestSendInsufficientBalance(t *testing.T) {
 	teardown()
 }
 
-
 func TestBlockMsgRelay(t *testing.T) {
 	setup()
 	var pows []*consensus.ProofOfWork
@@ -241,7 +240,7 @@ func TestBlockMsgRelay(t *testing.T) {
 		bc, pow := createBlockchain(addr, db)
 		bcs = append(bcs, bc)
 
-		node := setupNode(addr, pow, bc, testport_msg_relay + 100*i)
+		node := setupNode(addr, pow, bc, testport_msg_relay+100*i)
 
 		nodes = append(nodes, node)
 		pows = append(pows, pow)
@@ -283,7 +282,7 @@ func TestBlockMsgRelayMeshNetwork(t *testing.T) {
 		defer db.Close()
 		bc, pow := createBlockchain(addr, db)
 		//init node based on blockchain
-		node := setupNode(addr, pow ,bc, testport_msg_relay + 100*i)
+		node := setupNode(addr, pow, bc, testport_msg_relay+100*i)
 
 		//index each node and service
 		bcs = append(bcs, bc)
@@ -317,12 +316,11 @@ func TestBlockMsgRelayMeshNetwork(t *testing.T) {
 	}
 }
 
-const testport_msg_relay_port = 21202
 func TestBlockMsgWithDpos(t *testing.T) {
 	const (
-		timeBetweenBlock= 2
-		dposRounds= 3
-		bufferTime= 1
+		timeBetweenBlock = 2
+		dposRounds       = 3
+		bufferTime       = 1
 	)
 
 	miners := []string{
@@ -341,7 +339,7 @@ func TestBlockMsgWithDpos(t *testing.T) {
 	for i := 0; i < len(miners); i++ {
 		dpos := consensus.NewDpos()
 		dpos.SetDynasty(dynasty)
-		dpos.SetTargetBit(0)        //gennerate a block every round
+		dpos.SetTargetBit(0) //gennerate a block every round
 		bc := core.CreateBlockchain(core.Address{miners[0]}, storage.NewRamStorage(), dpos)
 		node := network.NewNode(bc)
 		node.Start(testport_msg_relay_port + i)
@@ -374,7 +372,6 @@ func TestBlockMsgWithDpos(t *testing.T) {
 	}
 }
 
-
 func TestForkChoice(t *testing.T) {
 
 	var pows []*consensus.ProofOfWork
@@ -389,26 +386,24 @@ func TestForkChoice(t *testing.T) {
 		db := storage.NewRamStorage()
 		defer db.Close()
 
-		bc,pow := createBlockchain(addr, db)
+		bc, pow := createBlockchain(addr, db)
 		bcs = append(bcs, bc)
 
 		n := network.NewNode(bcs[i])
 		pow.Setup(n, addr.Address)
-		pow.SetTargetBit(16)
+		pow.SetTargetBit(13)
 		n.Start(testport_fork + i)
 		pows = append(pows, pow)
-		nodes = append(nodes, node)
+		nodes = append(nodes, n)
 	}
 
-	for i := 0; i < numOfNodes; i++ {
-		if i != 0 {
-			nodes[i].AddStream(
-				nodes[0].GetPeerID(),
-				nodes[0].GetPeerMultiaddr(),
-			)
-		}
-		nodes[0].SyncPeersBroadcast()
+	for i := 1; i < numOfNodes; i++ {
+		nodes[i].AddStream(
+			nodes[0].GetPeerID(),
+			nodes[0].GetPeerMultiaddr(),
+		)
 	}
+	nodes[0].SyncPeersBroadcast()
 
 	//start node0 first. the next node starts mining after the previous node is at least at height 5
 	for i := 0; i < numOfNodes; i++ {
@@ -422,11 +417,11 @@ func TestForkChoice(t *testing.T) {
 
 	for i := 0; i < numOfNodes; i++ {
 		pows[i].Stop()
-		}
+	}
 	time.Sleep(time.Second * 5)
 
 	//Check if all nodes have the same tail block
-	for i := 0; i < numOfNodes-1; i++ {
+	for i := 1; i < numOfNodes; i++ {
 		assert.True(t, compareTwoBlockchains(bcs[0], bcs[i]))
 	}
 }
@@ -503,15 +498,14 @@ func TestAddBalanceWithInvalidAddress(t *testing.T) {
 	}
 }
 
-
-func connectNodes (node1 *network.Node, node2 *network.Node){
+func connectNodes(node1 *network.Node, node2 *network.Node) {
 	node1.AddStream(
 		node2.GetPeerID(),
 		node2.GetPeerMultiaddr(),
 	)
-	}
+}
 
-func setupNode(addr core.Address ,pow *consensus.ProofOfWork, bc *core.Blockchain, port int) *network.Node{
+func setupNode(addr core.Address, pow *consensus.ProofOfWork, bc *core.Blockchain, port int) *network.Node {
 	node := network.NewNode(bc)
 	pow.Setup(node, addr.Address)
 	pow.SetTargetBit(16)
@@ -519,7 +513,7 @@ func setupNode(addr core.Address ,pow *consensus.ProofOfWork, bc *core.Blockchai
 	return node
 }
 
-func createBlockchain (addr core.Address, db *storage.RamStorage) (*core.Blockchain, *consensus.ProofOfWork) {
+func createBlockchain(addr core.Address, db *storage.RamStorage) (*core.Blockchain, *consensus.ProofOfWork) {
 	pow := consensus.NewProofOfWork()
 	return core.CreateBlockchain(addr, db, pow), pow
 }
