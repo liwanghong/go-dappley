@@ -36,7 +36,6 @@ import (
 	"github.com/dappley/go-dappley/storage"
 	"github.com/gogo/protobuf/proto"
 	logger "github.com/sirupsen/logrus"
-	"strings"
 )
 
 var subsidy = common.NewAmount(10)
